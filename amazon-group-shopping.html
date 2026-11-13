@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon GroupCart – Family Shopping Demo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange:#FF9900;--dark:#131921;--blue:#007185;--yellow:#F0C040;
+  --bg:#F3F3F3;--white:#fff;--border:#DDD;--text:#0F1111;--muted:#565959;
+  --green:#007600;--red:#B12704;--purple:#6B3FA0;
+}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+
+/* ── HEADER ── */
+header{background:var(--dark);color:#fff;padding:8px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200}
+.logo{font-size:21px;font-weight:700;color:var(--orange);white-space:nowrap}.logo span{color:#fff}
+.search-bar{flex:1;display:flex}
+.search-bar input{flex:1;padding:8px 12px;border:none;border-radius:4px 0 0 4px;font-size:14px;outline:none}
+.search-bar button{background:var(--orange);border:none;padding:0 14px;border-radius:0 4px 4px 0;cursor:pointer;font-size:18px}
+.hdr-btn{background:transparent;border:none;color:#fff;cursor:pointer;font-size:11px;padding:4px 8px;border-radius:4px;display:flex;flex-direction:column;align-items:center;gap:1px}
+.hdr-btn:hover{background:rgba(255,255,255,.1)}
+.hdr-icon{font-size:20px}
+.cart-badge{background:var(--orange);color:#131921;border-radius:50%;min-width:17px;height:17px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;position:relative;top:-5px;left:-4px;margin-right:-10px}
+
+/* ── SESSION BANNER ── */
+#session-banner{background:linear-gradient(135deg,#0f1111,#1a3a4a);color:#fff;padding:9px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#session-banner.hidden{display:none}
+.sb-info{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sb-badge{background:var(--orange);color:#131921;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase}
+.room-code{font-family:monospace;font-size:14px;font-weight:700;color:var(--orange);background:rgba(255,153,0,.1);padding:3px 9px;border-radius:6px;border:1px solid rgba(255,153,0,.3);letter-spacing:2px}
+.avatars{display:flex;gap:5px}
+.av{width:26px;height:26px;border-radius:50%;border:2px solid var(--orange);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.leave-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:12px}
+.leave-btn:hover{background:rgba(255,255,255,.1)}
+
+/* ── LAYOUT ── */
+.main-layout{display:grid;grid-template-columns:1fr 320px;gap:14px;padding:14px;max-width:1300px;margin:0 auto}
+@media(max-width:880px){.main-layout{grid-template-columns:1fr}}
+.sidebar{display:flex;flex-direction:column;gap:12px}
+
+/* ── CATEGORY TABS ── */
+.cat-tabs{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+.cat-tab{background:var(--white);border:1px solid var(--border);padding:5px 13px;border-radius:18px;cursor:pointer;font-size:12px;color:var(--muted);transition:all .15s}
+.cat-tab.active,.cat-tab:hover{background:var(--orange);border-color:var(--orange);color:#131921;font-weight:600}
+
+/* ── PRODUCTS GRID ── */
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:13px}
+.product-card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:13px;transition:all .2s;position:relative}
+.product-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.15);transform:translateY(-2px)}
+.product-card.in-cart{border-color:var(--orange);background:#FFFBF2}
+.prod-img{font-size:44px;text-align:center;padding:10px 0;background:#F8F8F8;border-radius:6px;margin-bottom:9px}
+.prod-brand{font-size:11px;color:var(--blue)}
+.prod-name{font-size:12px;font-weight:600;line-height:1.4;margin:2px 0 3px}
+.prod-stars{color:var(--orange);font-size:11px}
+.prod-price{font-size:16px;font-weight:700}
+.prod-old{font-size:11px;color:var(--muted);text-decoration:line-through;margin-left:4px}
+.prod-disc{color:var(--red);font-size:11px;font-weight:600;margin-left:3px}
+.prod-addedby{font-size:10px;color:var(--muted);text-align:center;margin-top:3px}
+.in-cart-tag{position:absolute;top:7px;right:7px;background:var(--orange);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px}
+.add-btn{width:100%;margin-top:9px;padding:7px;background:var(--yellow);border:1px solid #C7A600;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;color:#131921;transition:all .15s}
+.add-btn:hover{background:#F0B800}
+.add-btn.added{background:#E8F4E8;border-color:var(--green);color:var(--green)}
+
+/* ── PANELS (shared) ── */
+.panel{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.panel-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;color:#fff;font-size:13px;font-weight:700}
+.panel-body{padding:12px}
+
+/* ── JOIN PANEL ── */
+#join-panel .panel-body{padding:14px}
+.inp-grp{margin-bottom:10px}
+.inp-grp label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:3px}
+.inp-grp input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;outline:none}
+.inp-grp input:focus{border-color:var(--orange);box-shadow:0 0 0 2px rgba(255,153,0,.2)}
+.btn-p{width:100%;padding:8px;background:var(--orange);border:1px solid #C7A600;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:#131921;margin-bottom:7px}
+.btn-p:hover{background:#F0B800}
+.btn-s{width:100%;padding:8px;background:var(--white);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px;color:var(--text)}
+.btn-s:hover{background:#F7F7F7}
+.divider{text-align:center;color:var(--muted);font-size:11px;margin:5px 0;position:relative}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border)}
+.divider::before{left:0}.divider::after{right:0}
+
+/* ── CART PANEL ── */
+#cart-panel{display:none}
+#cart-panel.vis{display:block}
+.cart-live{background:var(--green);color:#fff;font-size:9px;padding:2px 6px;border-radius:8px;font-weight:700;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+.cart-list{padding:10px;max-height:280px;overflow-y:auto}
+.cart-empty{text-align:center;color:var(--muted);padding:18px;font-size:12px}
+.ci{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.ci:last-child{border-bottom:none}
+.ci-emoji{font-size:24px;width:30px;text-align:center}
+.ci-info{flex:1;min-width:0}
+.ci-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-price{font-size:11px;font-weight:600}
+.ci-by{font-size:10px;color:var(--muted)}
+.ci-acts{display:flex;gap:3px;align-items:center}
+.qb{background:#F0F2F2;border:1px solid var(--border);width:21px;height:21px;border-radius:3px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.qb:hover{background:#E3E6E6}
+.qn{min-width:17px;text-align:center;font-size:11px;font-weight:600}
+.rb{background:transparent;border:none;color:var(--red);cursor:pointer;font-size:14px;opacity:.7}
+.rb:hover{opacity:1}
+.cart-foot{padding:10px 13px;border-top:1px solid var(--border);background:#FAFAFA}
+.tr{display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px}
+.tr.final{font-size:15px;font-weight:700;border-top:1px solid var(--border);padding-top:6px;margin-top:5px}
+.co-btn{width:100%;padding:9px;background:var(--yellow);border:1px solid #C7A600;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;color:#131921;margin-top:8px}
+.co-btn:hover{background:#F0B800}
+.co-btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ── SPLIT PREVIEW (sidebar) ── */
+#split-preview{display:none}
+#split-preview.vis{display:block}
+.sp-mode-btns{display:flex;gap:5px;padding:9px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.sp-mb{flex:1;min-width:55px;padding:5px 5px;border:1px solid var(--border);background:#F7F7F7;border-radius:6px;cursor:pointer;font-size:10px;font-weight:600;color:var(--muted);text-align:center}
+.sp-mb.active{background:var(--purple);border-color:var(--purple);color:#fff}
+.sp-rows{padding:8px 10px}
+.sp-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.sp-row:last-child{border-bottom:none}
+.sp-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.sp-name{flex:1;font-size:12px;font-weight:600}
+.sp-items{font-size:10px;color:var(--muted);flex:1}
+.sp-amt{font-size:13px;font-weight:700;color:var(--purple)}
+.settle-box{margin:0 10px 10px;background:#F0FBF4;border:1px solid #B8DDB8;border-radius:7px;padding:10px}
+.settle-ttl{font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px}
+.settle-row{font-size:11px;display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #D0EDD8}
+.settle-row:last-child{border-bottom:none}
+.settle-from{font-weight:700;color:var(--red)}
+.settle-to{font-weight:700;color:var(--green)}
+.settle-amt{font-weight:700;margin-left:auto}
+
+/* ── CHAT PANEL ── */
+#chat-panel{display:none}
+#chat-panel.vis{display:block}
+.chat-msgs{height:170px;overflow-y:auto;padding:9px;display:flex;flex-direction:column;gap:5px}
+.cm{padding:5px 9px;border-radius:9px;max-width:88%;font-size:11px;line-height:1.5}
+.cm.mine{background:#E8F4FD;align-self:flex-end;border-bottom-right-radius:2px}
+.cm.theirs{background:#F3F3F3;align-self:flex-start;border-bottom-left-radius:2px}
+.cm.sys{background:transparent;color:var(--muted);font-style:italic;align-self:center;font-size:10px}
+.cm-sender{font-weight:700;font-size:10px;margin-bottom:1px}
+.typing{font-size:10px;color:var(--muted);padding:0 9px 5px;font-style:italic;min-height:15px}
+.chat-inp{display:flex;gap:5px;padding:7px;border-top:1px solid var(--border)}
+.chat-inp input{flex:1;padding:6px 9px;border:1px solid var(--border);border-radius:14px;font-size:12px;outline:none}
+.send-btn{background:var(--blue);border:none;color:#fff;padding:6px 11px;border-radius:14px;cursor:pointer;font-size:12px;font-weight:600}
+
+/* ── ACTIVITY ── */
+#activity-feed{display:none}
+#activity-feed.vis{display:block}
+.act-item{font-size:10px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:5px}
+.act-item:last-child{border-bottom:none}
+.act-dot{width:6px;height:6px;border-radius:50%;background:var(--orange);flex-shrink:0}
+
+/* ═════════════ CHECKOUT MODAL ════════════════════════════════════════════════ */
+#order-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;z-index:500;overflow-y:auto;padding:16px}
+#order-modal.open{display:flex}
+.modal-box{background:#fff;border-radius:12px;width:100%;max-width:700px;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;margin:auto}
+
+/* modal header */
+.modal-top{background:linear-gradient(135deg,#131921,#1e3a4a);color:#fff;padding:22px 26px;text-align:center}
+.modal-top .mi{font-size:48px;margin-bottom:6px}
+.modal-top h2{font-size:19px;font-weight:700;color:#7DFFB3;margin-bottom:3px}
+.modal-top p{font-size:12px;color:rgba(255,255,255,.65)}
+
+/* modal tabs */
+.modal-tabs{display:flex;border-bottom:2px solid var(--border);background:#fff}
+.mtab{flex:1;padding:11px;background:transparent;border:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.mtab.active{color:var(--purple);border-bottom-color:var(--purple)}
+.mtab-body{display:none;padding:18px}
+.mtab-body.active{display:block}
+
+/* ── Tab 1: Order Summary ── */
+.order-item-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.order-item-row:last-child{border-bottom:none}
+.oi-emoji{font-size:26px;width:34px;text-align:center}
+.oi-info{flex:1}
+.oi-name{font-size:13px;font-weight:600}
+.oi-meta{font-size:11px;color:var(--muted)}
+.oi-price{font-size:13px;font-weight:700}
+.totals-block{background:#F8F8F8;border-radius:8px;padding:12px 15px;margin-top:12px}
+.tot-row{display:flex;justify-content:space-between;font-size:13px;padding:2px 0}
+.tot-row.final{font-size:16px;font-weight:700;border-top:1px solid var(--border);margin-top:5px;padding-top:7px}
+
+/* ── Tab 2: Bill Split ── */
+.split-intro{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+.split-mode-row{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap}
+.sm-btn{padding:7px 14px;border:1px solid var(--border);background:#F7F7F7;border-radius:18px;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);transition:all .15s}
+.sm-btn.active{background:var(--purple);border-color:var(--purple);color:#fff}
+
+/* member cards grid */
+.member-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:16px}
+.mc{border:1px solid var(--border);border-radius:9px;padding:13px;position:relative;overflow:hidden}
+.mc-bar{position:absolute;top:0;left:0;right:0;height:4px}
+.mc-name{font-size:14px;font-weight:700;margin:6px 0 2px}
+.mc-amt{font-size:22px;font-weight:700;margin-bottom:4px}
+.mc-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;margin-bottom:5px}
+.mc-items-list{font-size:11px;color:var(--muted);line-height:1.7}
+.mc-items-list span{display:block}
+
+/* custom sliders */
+#modal-sliders{display:none;padding:13px;background:#F8F8F8;border-radius:8px;margin-bottom:14px}
+.slider-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
+.slider-row:last-child{margin-bottom:0}
+.sl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sl-name{min-width:70px;font-weight:600}
+.sl-range{flex:1}
+.sl-pct{min-width:36px;text-align:right;font-weight:700}
+.sl-warning{font-size:11px;color:var(--red);margin-top:6px;display:none}
+
+/* ── Settlement section ── */
+.settle-section{background:#F0FBF4;border:1px solid #A8D8B8;border-radius:9px;padding:14px}
+.ss-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--green);margin-bottom:10px}
+.ss-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #D0EDD8;font-size:13px}
+.ss-item:last-child{border-bottom:none}
+.ss-from{font-weight:700;color:var(--red)}
+.ss-arrow{font-size:16px}
+.ss-to{font-weight:700;color:var(--green)}
+.ss-amt{font-size:16px;font-weight:700;margin-left:auto;color:#0F1111}
+.ss-via{font-size:10px;color:var(--muted);display:block}
+.all-settled{text-align:center;padding:18px;color:var(--green);font-weight:600;font-size:14px}
+
+/* ── Tab 3: Item Breakdown ── */
+.ibt{width:100%;border-collapse:collapse;font-size:12px}
+.ibt th{background:#F3F3F3;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.ibt td{padding:8px 9px;border-bottom:1px solid var(--border);vertical-align:middle}
+.ibt tr:last-child td{border-bottom:none}
+.ibt-payer{display:inline-block;padding:2px 8px;border-radius:9px;font-size:11px;font-weight:700;white-space:nowrap}
+.ibt-split-tag{display:inline-block;padding:1px 5px;border-radius:5px;font-size:9px;margin-left:3px;vertical-align:middle;background:#EEE;color:var(--muted)}
+
+/* modal footer */
+.modal-footer{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:9px;background:#FAFAFA}
+.mf-btn{flex:1;padding:10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;border:1px solid var(--border);transition:all .15s}
+.mf-confirm{background:var(--yellow);border-color:#C7A600;color:#131921}
+.mf-confirm:hover{background:#F0B800}
+.mf-cancel{background:var(--white);color:var(--text)}
+.mf-cancel:hover{background:#F0F2F2}
+
+/* ── SUCCESS MODAL ── */
+#success-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:600;padding:16px}
+.success-box{background:#fff;border-radius:12px;padding:28px;max-width:450px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.success-icon{font-size:58px;margin-bottom:10px}
+.success-title{font-size:21px;font-weight:700;color:var(--green);margin-bottom:6px}
+.success-sub{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+.success-inner{background:#F8F8F8;border-radius:8px;padding:14px;text-align:left;margin-bottom:18px;font-size:13px}
+.s-row{display:flex;justify-content:space-between;padding:3px 0}
+.s-row.total{font-weight:700;border-top:1px solid var(--border);margin-top:6px;padding-top:7px}
+.payment-requests{border-top:1px solid var(--border);margin-top:10px;padding-top:10px}
+.pr-title{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px;letter-spacing:.4px}
+.pr-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0}
+.pr-row strong{color:var(--red)}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#131921;color:#fff;padding:9px 18px;border-radius:18px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">amazon<span>.group</span></div>
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="Search products..." oninput="filterProducts(this.value)">
+    <button>🔍</button>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center">
+    <button class="hdr-btn" onclick="scrollToEl('cart-panel')">
+      <span id="cart-badge" class="cart-badge" style="display:none">0</span>
+      <span class="hdr-icon">🛒</span><span>Cart</span>
+    </button>
+    <button class="hdr-btn" onclick="scrollToEl('chat-panel')">
+      <span class="hdr-icon">💬</span><span>Chat</span>
+    </button>
+  </div>
+</header>
+
+<!-- SESSION BANNER -->
+<div id="session-banner" class="hidden">
+  <div class="sb-info">
+    <span class="sb-badge">🛒 Live Session</span>
+    <span style="font-size:12px;color:#aaa">Room:</span>
+    <span class="room-code" id="banner-code">----</span>
+    <div class="avatars" id="banner-avatars"></div>
+  </div>
+  <button class="leave-btn" onclick="leaveSession()">Leave Session</button>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- LEFT: PRODUCTS -->
+  <div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+      <h2 style="font-size:17px;font-weight:700">🏪 GroupCart Store</h2>
+      <span id="results-count" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="cat-tabs" id="cat-tabs"></div>
+    <div class="products-grid" id="products-grid"></div>
+  </div>
+
+  <!-- RIGHT: SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- JOIN / CREATE -->
+    <div class="panel" id="join-panel">
+      <div class="panel-hdr" style="background:var(--dark)">👨‍👩‍👧‍👦 Group Shopping</div>
+      <div class="panel-body">
+        <p style="font-size:11px;color:var(--muted);margin-bottom:11px;line-height:1.6">Shop together in real-time across tabs. Add items, chat, split the bill, and checkout as a family!</p>
+        <div class="inp-grp"><label>Your Name</label><input type="text" id="user-name" placeholder="e.g. Priya..."></div>
+        <button class="btn-p" onclick="createSession()">✨ Create New Group</button>
+        <div class="divider">or join existing</div>
+        <div class="inp-grp" style="margin-top:7px"><label>Room Code</label><input type="text" id="room-code-input" placeholder="e.g. SHOP-1234" style="text-transform:uppercase"></div>
+        <button class="btn-s" onclick="joinSession()">🔗 Join Group</button>
+        <div style="margin-top:10px;padding:9px;background:#E8F4E8;border-radius:6px;font-size:11px;color:var(--green);line-height:1.6">
+          💡 <b>Demo tip:</b> Open this page in <b>2+ browser tabs</b>, create a session in one, copy the room code, and join from the other tab to see real-time sync + bill splitting!
+        </div>
+      </div>
+    </div>
+
+    <!-- CART -->
+    <div class="panel" id="cart-panel">
+      <div class="panel-hdr" style="background:var(--dark)">
+        <span style="display:flex;align-items:center;gap:7px">🛒 Shared Cart <span class="cart-live">LIVE</span></span>
+        <span id="cart-count-txt" style="font-size:11px;opacity:.75">0 items</span>
+      </div>
+      <div class="cart-list" id="cart-list">
+        <div class="cart-empty">Cart is empty — add some items!</div>
+      </div>
+      <div class="cart-foot">
+        <div class="tr"><span>Subtotal</span><span id="subtotal">₹0</span></div>
+        <div class="tr"><span>GST (18%)</span><span id="gst-amt">₹0</span></div>
+        <div class="tr"><span>Delivery</span><span style="color:var(--green)">FREE</span></div>
+        <div class="tr final"><span>Grand Total</span><span id="grand-total">₹0</span></div>
+        <button class="co-btn" id="checkout-btn" onclick="openCheckout()" disabled>Proceed to Checkout</button>
+        <p id="admin-note" style="font-size:10px;color:var(--muted);text-align:center;margin-top:5px"></p>
+      </div>
+    </div>
+
+    <!-- SPLIT PREVIEW (sidebar live) -->
+    <div class="panel" id="split-preview">
+      <div class="panel-hdr" style="background:linear-gradient(135deg,#6B3FA0,#4A2870)">
+        <span>💸 Bill Split Preview</span>
+        <span id="sp-total" style="font-size:11px;opacity:.8"></span>
+      </div>
+      <div class="sp-mode-btns">
+        <button class="sp-mb active" id="spb-adder" onclick="setSplitMode('adder')">👤 By Adder</button>
+        <button class="sp-mb" id="spb-equal" onclick="setSplitMode('equal')">⚖️ Equal</button>
+        <button class="sp-mb" id="spb-custom" onclick="setSplitMode('custom')">🎛 Custom</button>
+      </div>
+      <div class="sp-rows" id="sp-rows"></div>
+      <div class="settle-box" id="sp-settle"></div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="panel" id="chat-panel">
+      <div class="panel-hdr" style="background:#007185">
+        <span>💬 Group Chat</span>
+        <span id="online-count" style="font-size:11px;opacity:.75">1 online</span>
+      </div>
+      <div class="chat-msgs" id="chat-msgs"></div>
+      <div class="typing" id="typing"></div>
+      <div class="chat-inp">
+        <input type="text" id="chat-input" placeholder="Message the group…" maxlength="120"
+          onkeydown="if(event.key==='Enter')sendChat()" oninput="broadcastTyping()">
+        <button class="send-btn" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+
+    <!-- ACTIVITY -->
+    <div class="panel" id="activity-feed">
+      <div class="panel-hdr" style="background:#565959;font-size:11px">📋 Recent Activity</div>
+      <div class="panel-body" id="activity-list" style="padding:8px 12px"></div>
+    </div>
+
+  </div><!-- /sidebar -->
+</div>
+
+<!-- ═══════════ CHECKOUT MODAL ═══════════ -->
+<div id="order-modal">
+  <div class="modal-box">
+    <div class="modal-top">
+      <div class="mi">🛒</div>
+      <h2>Review Group Order</h2>
+      <p>Review items, choose how to split the bill, then place the order</p>
+    </div>
+
+    <div class="modal-tabs">
+      <button class="mtab active" onclick="switchTab('summary',this)">📋 Order Summary</button>
+      <button class="mtab" onclick="switchTab('split',this)">💸 Bill Split</button>
+      <button class="mtab" onclick="switchTab('breakdown',this)">🔍 Item Breakdown</button>
+    </div>
+
+    <!-- TAB 1: ORDER SUMMARY -->
+    <div class="mtab-body active" id="tab-summary">
+      <div id="modal-items"></div>
+      <div class="totals-block" id="modal-totals"></div>
+    </div>
+
+    <!-- TAB 2: BILL SPLIT -->
+    <div class="mtab-body" id="tab-split">
+      <p class="split-intro">Choose how to divide the total bill among group members. The <b>Settlement</b> section tells you exactly who needs to pay whom and how much.</p>
+      <div class="split-mode-row">
+        <button class="sm-btn active" id="msb-adder" onclick="setModalSplit('adder')">👤 By Who Added</button>
+        <button class="sm-btn" id="msb-equal" onclick="setModalSplit('equal')">⚖️ Split Equally</button>
+        <button class="sm-btn" id="msb-custom" onclick="setModalSplit('custom')">🎛 Custom %</button>
+      </div>
+      <div id="modal-sliders"></div>
+      <div class="member-cards" id="modal-member-cards"></div>
+      <div class="settle-section" id="modal-settlement"></div>
+    </div>
+
+    <!-- TAB 3: ITEM BREAKDOWN -->
+    <div class="mtab-body" id="tab-breakdown">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Every item — who added it, its price, and who pays for it based on the current split mode.</p>
+      <table class="ibt">
+        <thead><tr><th>Item</th><th>Added By</th><th>Price</th><th>Pays</th></tr></thead>
+        <tbody id="ibt-body"></tbody>
+      </table>
+    </div>
+
+    <div class="modal-footer">
+      <button class="mf-btn mf-cancel" onclick="closeCheckout()">Cancel</button>
+      <button class="mf-btn mf-confirm" id="confirm-btn" onclick="confirmOrder()">✅ Place Group Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SUCCESS MODAL ═══════════ -->
+<div id="success-modal">
+  <div class="success-box">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Order Placed!</div>
+    <div class="success-sub">Your group order has been confirmed.<br>Payment requests sent to all members.</div>
+    <div class="success-inner" id="success-inner"></div>
+    <button onclick="closeSuccess()" style="background:var(--orange);border:none;padding:10px 26px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;color:#131921">Continue Shopping</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── PRODUCTS DATA ────────────────────────────────────────────────────────────
+const PRODUCTS = [
+  {id:1, name:'Apple iPhone 15 128GB Blue',     brand:'Apple',      price:79900,  oldPrice:89900,  emoji:'📱', cat:'Electronics', rating:'★★★★★', rc:'24,512'},
+  {id:2, name:'Samsung Galaxy S24 Ultra',        brand:'Samsung',    price:129999, oldPrice:149999, emoji:'📲', cat:'Electronics', rating:'★★★★★', rc:'18,230'},
+  {id:3, name:'Sony WH-1000XM5 Headphones',     brand:'Sony',       price:24990,  oldPrice:34990,  emoji:'🎧', cat:'Electronics', rating:'★★★★★', rc:'8,641'},
+  {id:4, name:'Apple MacBook Air M3 13"',        brand:'Apple',      price:114900, oldPrice:129900, emoji:'💻', cat:'Electronics', rating:'★★★★★', rc:'5,342'},
+  {id:5, name:'OnePlus Nord CE 4 128GB',         brand:'OnePlus',    price:24999,  oldPrice:29999,  emoji:'📱', cat:'Electronics', rating:'★★★★☆', rc:'11,204'},
+  {id:6, name:"Levi's 511 Slim Fit Jeans",       brand:"Levi's",     price:3499,   oldPrice:5999,   emoji:'👖', cat:'Fashion',     rating:'★★★★☆', rc:'34,201'},
+  {id:7, name:'Nike Air Max 270 Sneakers',       brand:'Nike',       price:8995,   oldPrice:12995,  emoji:'👟', cat:'Fashion',     rating:'★★★★★', rc:'21,432'},
+  {id:8, name:'Puma Mens T-Shirt 3-Pack',        brand:'Puma',       price:1499,   oldPrice:2499,   emoji:'👕', cat:'Fashion',     rating:'★★★★☆', rc:'9,876'},
+  {id:9, name:'Instant Pot Duo 6qt',             brand:'Instant Pot',price:7999,   oldPrice:11999,  emoji:'🍲', cat:'Kitchen',     rating:'★★★★★', rc:'45,231'},
+  {id:10,name:'Pigeon Non-Stick Cookware Set',   brand:'Pigeon',     price:2199,   oldPrice:4999,   emoji:'🍳', cat:'Kitchen',     rating:'★★★★☆', rc:'28,104'},
+  {id:11,name:'Philips Air Fryer HD9200',        brand:'Philips',    price:9999,   oldPrice:13999,  emoji:'🫕', cat:'Kitchen',     rating:'★★★★★', rc:'15,672'},
+  {id:12,name:'LEGO Star Wars 501st Set',        brand:'LEGO',       price:5999,   oldPrice:7999,   emoji:'🧱', cat:'Toys',        rating:'★★★★★', rc:'3,421'},
+  {id:13,name:'Funskool Carrom Board Large',     brand:'Funskool',   price:1299,   oldPrice:2199,   emoji:'🎯', cat:'Toys',        rating:'★★★★☆', rc:'7,840'},
+  {id:14,name:'Atomberg Renesa+ Fan 1200mm',     brand:'Atomberg',   price:4299,   oldPrice:5999,   emoji:'🌀', cat:'Home',        rating:'★★★★★', rc:'31,540'},
+  {id:15,name:'Godrej Aer Room Freshener',       brand:'Godrej',     price:449,    oldPrice:699,    emoji:'🌸', cat:'Home',        rating:'★★★★☆', rc:'52,100'},
+  {id:16,name:'Tata Tea Gold 500g',              brand:'Tata',       price:299,    oldPrice:349,    emoji:'🍵', cat:'Grocery',     rating:'★★★★★', rc:'88,234'},
+  {id:17,name:'Amul Butter 500g',                brand:'Amul',       price:262,    oldPrice:280,    emoji:'🧈', cat:'Grocery',     rating:'★★★★★', rc:'62,100'},
+  {id:18,name:"Lay's Chips Variety Pack",        brand:'Frito-Lay',  price:599,    oldPrice:799,    emoji:'🥔', cat:'Grocery',     rating:'★★★★☆', rc:'14,322'},
+];
+const CATS = ['All', ...[...new Set(PRODUCTS.map(p=>p.cat))]];
+const COLORS = ['#E53935','#1E88E5','#43A047','#FB8C00','#8E24AA','#00ACC1','#F4511E','#6D4C41'];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let S = { session:null, cart:[], messages:[], activities:[] };
+let splitMode = 'adder';       // sidebar split mode
+let modalSplitMode = 'adder';  // modal split mode
+let customPcts = {};           // name -> pct
+let knownMembers = [];
+let channel = null;
+let typingTimer = null;
+let currentFilter = 'All';
+let searchQuery = '';
+let myId = Math.random().toString(36).slice(2,8);
+
+// ─── BROADCAST CHANNEL (cross-tab real-time sync) ────────────────────────────
+function initChannel(code){
+  if(channel) channel.close();
+  channel = new BroadcastChannel('gc_' + code);
+  channel.onmessage = e => onMsg(e.data);
+}
+function bc(type, payload){
+  if(!channel) return;
+  channel.postMessage({type, payload, from: S.session?.userName, sid: myId});
+}
+function onMsg(m){
+  if(m.sid === myId) return;
+  switch(m.type){
+    case 'CART_UPDATE':
+      S.cart = m.payload;
+      renderCart(); renderProducts(); renderSplitPreview();
+      addActivity(`${m.from} updated the cart`);
+      showToast(`🛒 ${m.from} updated the cart`);
+      break;
+    case 'CHAT':
+      addMsg(m.payload.sender, m.payload.text, 'theirs'); break;
+    case 'JOINED':
+      addMsg('', `${m.from} joined the group`, 'sys');
+      if(!knownMembers.includes(m.from)) knownMembers.push(m.from);
+      initCustomPcts();
+      updateBannerAvatars();
+      showToast(`👋 ${m.from} joined`);
+      addActivity(`${m.from} joined`);
+      break;
+    case 'LEFT':
+      addMsg('', `${m.from} left`, 'sys');
+      showToast(`👋 ${m.from} left`);
+      break;
+    case 'TYPING':
+      showTyping(m.from); break;
+    case 'ORDER_PLACED':
+      addMsg('', `🎉 ${m.from} placed the order!`, 'sys');
+      showToast('✅ Order placed by ' + m.from);
+      break;
+    case 'SYNC_REQ':
+      bc('SYNC_RES', {cart: S.cart, members: knownMembers}); break;
+    case 'SYNC_RES':
+      if(S.cart.length === 0 && m.payload.cart.length > 0){
+        S.cart = m.payload.cart;
+        m.payload.members.forEach(n=>{ if(!knownMembers.includes(n)) knownMembers.push(n); });
+        initCustomPcts();
+        renderCart(); renderProducts(); renderSplitPreview();
+        showToast('🔄 Cart synced!');
+      }
+      break;
+  }
+}
+
+// ─── SESSION ─────────────────────────────────────────────────────────────────
+function createSession(){
+  const name = document.getElementById('user-name').value.trim();
+  if(!name){ showToast('⚠️ Enter your name'); return; }
+  const code = 'SHOP-' + Math.floor(1000+Math.random()*9000);
+  startSession(code, name, true);
+}
+function joinSession(){
+  const name = document.getElementById('user-name').value.trim();
+  const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+  if(!name){ showToast('⚠️ Enter your name'); return; }
+  if(!code){ showToast('⚠️ Enter room code'); return; }
+  startSession(code, name, false);
+}
+function startSession(code, name, isAdmin){
+  S.session = {roomCode: code, userName: name, isAdmin};
+  if(!knownMembers.includes(name)) knownMembers.push(name);
+  initCustomPcts();
+  initChannel(code);
+  // show UI
+  document.getElementById('join-panel').style.display = 'none';
+  ['cart-panel','split-preview','chat-panel','activity-feed'].forEach(id=>document.getElementById(id).classList.add('vis'));
+  document.getElementById('session-banner').classList.remove('hidden');
+  document.getElementById('banner-code').textContent = code;
+  updateBannerAvatars();
+  bc('JOINED', {});
+  if(!isAdmin) setTimeout(()=>bc('SYNC_REQ',{}), 400);
+  addMsg('', isAdmin ? 'Session created — share the code!' : `Joined room ${code}`, 'sys');
+  showToast(isAdmin ? '✅ Group created!' : `✅ Joined ${code}`);
+  renderProducts();
+}
+function leaveSession(){
+  bc('LEFT', {});
+  if(channel){ channel.close(); channel = null; }
+  S = {session:null, cart:[], messages:[], activities:[]};
+  knownMembers = []; customPcts = {};
+  myId = Math.random().toString(36).slice(2,8);
+  document.getElementById('join-panel').style.display = 'block';
+  ['cart-panel','split-preview','chat-panel','activity-feed'].forEach(id=>document.getElementById(id).classList.remove('vis'));
+  document.getElementById('session-banner').classList.add('hidden');
+  document.getElementById('chat-msgs').innerHTML = '';
+  document.getElementById('activity-list').innerHTML = '';
+  renderCart(); renderProducts(); renderSplitPreview();
+  showToast('👋 Left session');
+}
+function updateBannerAvatars(){
+  const el = document.getElementById('banner-avatars');
+  el.innerHTML = knownMembers.map((n,i)=>`<div class="av" style="background:${COLORS[i%COLORS.length]}" title="${n}">${n[0].toUpperCase()}</div>`).join('');
+}
+
+// ─── CART LOGIC ───────────────────────────────────────────────────────────────
+function addToCart(id){
+  if(!S.session){ showToast('⚠️ Join a session first!'); return; }
+  const p = PRODUCTS.find(x=>x.id===id);
+  const ex = S.cart.find(x=>x.id===id);
+  if(ex) ex.qty++;
+  else S.cart.push({id, name:p.name, price:p.price, emoji:p.emoji, qty:1, addedBy:S.session.userName});
+  renderCart(); renderProducts(); renderSplitPreview();
+  bc('CART_UPDATE', S.cart);
+  addActivity(`You added "${p.name.split(' ').slice(0,3).join(' ')}"`);
+  showToast('🛒 Added to shared cart!');
+}
+function changeQty(id, d){
+  const item = S.cart.find(x=>x.id===id);
+  if(!item) return;
+  item.qty += d;
+  if(item.qty <= 0) S.cart = S.cart.filter(x=>x.id!==id);
+  renderCart(); renderProducts(); renderSplitPreview();
+  bc('CART_UPDATE', S.cart);
+}
+function removeItem(id){
+  S.cart = S.cart.filter(x=>x.id!==id);
+  renderCart(); renderProducts(); renderSplitPreview();
+  bc('CART_UPDATE', S.cart);
+  showToast('🗑️ Removed');
+}
+
+function getSubtotal(){ return S.cart.reduce((s,i)=>s+i.price*i.qty, 0); }
+function getGST(sub){ return Math.round(sub * 0.18); }
+function getGrandTotal(){ const s=getSubtotal(); return s+getGST(s); }
+
+function renderCart(){
+  const listEl = document.getElementById('cart-list');
+  const totalItems = S.cart.reduce((s,i)=>s+i.qty,0);
+  const sub = getSubtotal();
+  const gst = getGST(sub);
+  const grand = sub + gst;
+
+  document.getElementById('cart-count-txt').textContent = `${totalItems} item${totalItems!==1?'s':''}`;
+  document.getElementById('subtotal').textContent = '₹'+sub.toLocaleString('en-IN');
+  document.getElementById('gst-amt').textContent = '₹'+gst.toLocaleString('en-IN');
+  document.getElementById('grand-total').textContent = '₹'+grand.toLocaleString('en-IN');
+
+  const badge = document.getElementById('cart-badge');
+  badge.style.display = totalItems > 0 ? 'inline-flex' : 'none';
+  badge.textContent = totalItems;
+
+  const btn = document.getElementById('checkout-btn');
+  const note = document.getElementById('admin-note');
+  btn.disabled = !S.session?.isAdmin || S.cart.length === 0;
+  if(!S.session) note.textContent = '';
+  else if(S.session.isAdmin) note.textContent = '👑 You are admin — you can checkout';
+  else note.textContent = '⏳ Waiting for admin to checkout';
+
+  if(S.cart.length === 0){
+    listEl.innerHTML = '<div class="cart-empty">Cart is empty — add some items!</div>';
+    return;
+  }
+  listEl.innerHTML = S.cart.map(item=>`
+    <div class="ci">
+      <div class="ci-emoji">${item.emoji}</div>
+      <div class="ci-info">
+        <div class="ci-name">${item.name.split(' ').slice(0,4).join(' ')}</div>
+        <div class="ci-price">₹${(item.price*item.qty).toLocaleString('en-IN')}</div>
+        <div class="ci-by">by ${item.addedBy}</div>
+      </div>
+      <div class="ci-acts">
+        <button class="qb" onclick="changeQty(${item.id},-1)">−</button>
+        <span class="qn">${item.qty}</span>
+        <button class="qb" onclick="changeQty(${item.id},1)">+</button>
+        <button class="rb" onclick="removeItem(${item.id})">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── SPLIT ENGINE ─────────────────────────────────────────────────────────────
+/*
+  Returns { memberName: amountToPay } using the grand total (with GST).
+  Three modes:
+    adder  – each person pays for the items they added
+    equal  – grand total split equally among all members
+    custom – weighted by customPcts percentages
+*/
+function calcSplit(mode, members, cart, grandTotal){
+  const result = {};
+  members.forEach(m => result[m] = 0);
+
+  if(mode === 'adder'){
+    cart.forEach(item=>{
+      const itemTotal = item.price * item.qty;
+      const sub = getSubtotal();
+      const itemGrand = Math.round(itemTotal * (grandTotal / (sub || 1)));
+      if(result[item.addedBy] !== undefined) result[item.addedBy] += itemGrand;
+      else result[item.addedBy] = itemGrand; // person who added but not in knownMembers yet
+    });
+    // Normalise to grand total (rounding correction)
+    const diff = grandTotal - Object.values(result).reduce((a,b)=>a+b,0);
+    if(members.length > 0) result[members[0]] = (result[members[0]] || 0) + diff;
+
+  } else if(mode === 'equal'){
+    const share = Math.floor(grandTotal / members.length);
+    const remainder = grandTotal - share * members.length;
+    members.forEach((m,i) => result[m] = share + (i===0 ? remainder : 0));
+
+  } else if(mode === 'custom'){
+    let totalPct = members.reduce((s,m)=>s+(customPcts[m]||0), 0);
+    if(totalPct <= 0) totalPct = 100;
+    let allocated = 0;
+    members.forEach((m,i)=>{
+      if(i === members.length-1){
+        result[m] = grandTotal - allocated;
+      } else {
+        result[m] = Math.round(grandTotal * (customPcts[m]||0) / totalPct);
+        allocated += result[m];
+      }
+    });
+  }
+  return result;
+}
+
+/*
+  Minimum cash flow settlement algorithm.
+  Given { name: amount they owe }, and the admin who paid upfront,
+  returns list of { from, to, amount } transactions.
+*/
+function calcSettlement(split, adminName){
+  const members = Object.keys(split);
+  if(members.length <= 1) return [];
+
+  // Everyone owes admin (the person who paid). admin's net = grandTotal - their own share
+  const grandTotal = Object.values(split).reduce((a,b)=>a+b,0);
+  // net[person] = what they owe to pool (positive = needs to pay admin)
+  const net = {};
+  members.forEach(m => net[m] = m === adminName ? -(grandTotal - split[m]) : split[m]);
+
+  // Greedy settlement
+  const txns = [];
+  const debtors  = members.filter(m => net[m] > 0).map(m=>({name:m, amt:net[m]})).sort((a,b)=>b.amt-a.amt);
+  const creditors = members.filter(m => net[m] < 0).map(m=>({name:m, amt:-net[m]})).sort((a,b)=>b.amt-a.amt);
+
+  let di=0, ci=0;
+  while(di < debtors.length && ci < creditors.length){
+    const pay = Math.min(debtors[di].amt, creditors[ci].amt);
+    if(pay > 0){
+      txns.push({from: debtors[di].name, to: creditors[ci].name, amount: pay});
+    }
+    debtors[di].amt -= pay;
+    creditors[ci].amt -= pay;
+    if(debtors[di].amt < 1) di++;
+    if(creditors[ci].amt < 1) ci++;
+  }
+  return txns;
+}
+
+function initCustomPcts(){
+  const equal = knownMembers.length > 0 ? Math.floor(100/knownMembers.length) : 100;
+  knownMembers.forEach((m,i)=>{
+    if(customPcts[m] === undefined)
+      customPcts[m] = i < knownMembers.length-1 ? equal : 100 - equal*(knownMembers.length-1);
+  });
+}
+
+// ─── SPLIT PREVIEW (sidebar) ─────────────────────────────────────────────────
+function setSplitMode(mode){
+  splitMode = mode;
+  ['adder','equal','custom'].forEach(m=>{
+    document.getElementById('spb-'+m).classList.toggle('active', m===mode);
+  });
+  renderSplitPreview();
+}
+
+function renderSplitPreview(){
+  const rowsEl = document.getElementById('sp-rows');
+  const settleEl = document.getElementById('sp-settle');
+  const spTotal = document.getElementById('sp-total');
+  const members = knownMembers.length > 0 ? knownMembers : (S.session ? [S.session.userName] : []);
+
+  if(!S.session || S.cart.length === 0){
+    rowsEl.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:6px 2px">Add items to see the split</div>';
+    settleEl.innerHTML = '';
+    spTotal.textContent = '';
+    return;
+  }
+
+  const grand = getGrandTotal();
+  spTotal.textContent = '₹'+grand.toLocaleString('en-IN');
+  const split = calcSplit(splitMode, members, S.cart, grand);
+  const settlements = calcSettlement(split, S.session.userName);
+
+  rowsEl.innerHTML = members.map((m,i)=>{
+    const amt = split[m] || 0;
+    const pct = grand > 0 ? Math.round(amt/grand*100) : 0;
+    const myItems = S.cart.filter(c=>c.addedBy===m);
+    const itemsText = myItems.length > 0 ? myItems.map(c=>c.emoji).join(' ') : '–';
+    return `<div class="sp-row">
+      <div class="sp-dot" style="background:${COLORS[i%COLORS.length]}"></div>
+      <span class="sp-name">${m}</span>
+      <span class="sp-items">${itemsText}</span>
+      <span class="sp-amt">₹${amt.toLocaleString('en-IN')} <span style="font-size:10px;color:var(--muted);font-weight:400">(${pct}%)</span></span>
+    </div>`;
+  }).join('');
+
+  if(settlements.length === 0){
+    settleEl.innerHTML = `<div class="settle-ttl">💸 Settlement</div><div style="font-size:11px;color:var(--green)">✅ No transfers needed</div>`;
+  } else {
+    settleEl.innerHTML = `<div class="settle-ttl">💸 Who Pays Whom</div>`
+      + settlements.map(t=>`
+        <div class="settle-row">
+          <span class="settle-from">${t.from}</span>
+          <span>→ pays →</span>
+          <span class="settle-to">${t.to}</span>
+          <span class="settle-amt">₹${t.amount.toLocaleString('en-IN')}</span>
+        </div>`).join('');
+  }
+}
+
+// ─── CHECKOUT MODAL ───────────────────────────────────────────────────────────
+function openCheckout(){
+  if(!S.session?.isAdmin){ showToast('⚠️ Only admin can checkout'); return; }
+  if(S.cart.length === 0){ showToast('⚠️ Cart is empty'); return; }
+  renderModalSummary();
+  renderModalSplit();
+  renderItemBreakdown();
+  document.getElementById('order-modal').classList.add('open');
+  switchTab('summary', document.querySelector('.mtab'));
+}
+function closeCheckout(){ document.getElementById('order-modal').classList.remove('open'); }
+
+function switchTab(id, btn){
+  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.mtab-body').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='split') renderModalSplit();
+  if(id==='breakdown') renderItemBreakdown();
+}
+
+// Tab 1: Order Summary
+function renderModalSummary(){
+  const sub = getSubtotal();
+  const gst = getGST(sub);
+  const grand = sub + gst;
+  document.getElementById('modal-items').innerHTML = S.cart.map(item=>`
+    <div class="order-item-row">
+      <div class="oi-emoji">${item.emoji}</div>
+      <div class="oi-info">
+        <div class="oi-name">${item.name}</div>
+        <div class="oi-meta">Qty: ${item.qty} · Added by <b>${item.addedBy}</b></div>
+      </div>
+      <div class="oi-price">₹${(item.price*item.qty).toLocaleString('en-IN')}</div>
+    </div>`).join('');
+  document.getElementById('modal-totals').innerHTML = `
+    <div class="tot-row"><span>Subtotal (${S.cart.reduce((s,i)=>s+i.qty,0)} items)</span><span>₹${sub.toLocaleString('en-IN')}</span></div>
+    <div class="tot-row"><span>GST (18%)</span><span>₹${gst.toLocaleString('en-IN')}</span></div>
+    <div class="tot-row"><span style="color:var(--green)">Delivery</span><span style="color:var(--green)">FREE</span></div>
+    <div class="tot-row final"><span>Grand Total</span><span>₹${grand.toLocaleString('en-IN')}</span></div>`;
+}
+
+// Tab 2: Bill Split
+function setModalSplit(mode){
+  modalSplitMode = mode;
+  ['adder','equal','custom'].forEach(m=>{
+    document.getElementById('msb-'+m).classList.toggle('active', m===mode);
+  });
+  renderModalSplit();
+}
+
+function renderModalSplit(){
+  const members = knownMembers.length > 0 ? knownMembers : (S.session ? [S.session.userName] : []);
+  const grand = getGrandTotal();
+  const split = calcSplit(modalSplitMode, members, S.cart, grand);
+  const settlements = calcSettlement(split, S.session?.userName || members[0]);
+
+  // Custom sliders
+  const slidersEl = document.getElementById('modal-sliders');
+  if(modalSplitMode === 'custom'){
+    let totalPct = members.reduce((s,m)=>s+(customPcts[m]||0),0);
+    slidersEl.style.display = 'block';
+    slidersEl.innerHTML = members.map((m,i)=>`
+      <div class="slider-row">
+        <div class="sl-dot" style="background:${COLORS[i%COLORS.length]}"></div>
+        <span class="sl-name">${m}</span>
+        <input type="range" class="sl-range" min="0" max="100" value="${customPcts[m]||0}"
+          oninput="customPcts['${m}']=+this.value; document.getElementById('sl-pct-${i}').textContent=this.value+'%'; renderModalSplit()">
+        <span class="sl-pct" id="sl-pct-${i}">${customPcts[m]||0}%</span>
+      </div>`).join('') +
+      `<div class="sl-warning" id="sl-warn" style="display:${Math.abs(totalPct-100)>1?'block':'none'}">
+        ⚠️ Percentages add up to ${totalPct}% — they should total 100%
+      </div>`;
+  } else {
+    slidersEl.style.display = 'none';
+  }
+
+  // Member cards
+  document.getElementById('modal-member-cards').innerHTML = members.map((m,i)=>{
+    const amt = split[m] || 0;
+    const pct = grand > 0 ? Math.round(amt/grand*100) : 0;
+    const myItems = S.cart.filter(c=>c.addedBy===m);
+    const color = COLORS[i%COLORS.length];
+    const isMe = m === S.session?.userName;
+    return `
+      <div class="mc" style="${isMe?'background:#FFFBF2;':''};border-color:${isMe?'var(--orange)':color}20">
+        <div class="mc-bar" style="background:${color}"></div>
+        <div class="mc-name">${m} ${isMe?'<span style="font-size:10px;color:var(--orange);font-weight:600">(you)</span>':''}</div>
+        <div class="mc-amt" style="color:${color}">₹${amt.toLocaleString('en-IN')}</div>
+        <div class="mc-badge" style="background:${color}20;color:${color}">${pct}% of total</div>
+        <div class="mc-items-list">
+          ${myItems.length>0 ? myItems.map(c=>`<span>${c.emoji} ${c.name.split(' ').slice(0,3).join(' ')} ×${c.qty}</span>`).join('') : '<span style="color:var(--muted)">No items added</span>'}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Settlement section
+  const settleEl = document.getElementById('modal-settlement');
+  if(settlements.length === 0){
+    settleEl.innerHTML = `<div class="ss-title">💸 Settlement</div><div class="all-settled">✅ All settled — no transfers needed!<br><span style="font-size:12px;font-weight:400">Everyone pays for what they added.</span></div>`;
+  } else {
+    settleEl.innerHTML = `
+      <div class="ss-title">💸 Who Pays Whom — Minimum Transfers</div>
+      ${settlements.map(t=>`
+        <div class="ss-item">
+          <div>
+            <span class="ss-from">${t.from}</span>
+            <span class="ss-arrow"> → </span>
+            <span class="ss-to">${t.to}</span>
+            <span class="ss-via">Via GPay / PhonePe / UPI</span>
+          </div>
+          <div class="ss-amt">₹${t.amount.toLocaleString('en-IN')}</div>
+        </div>`).join('')}`;
+  }
+}
+
+// Tab 3: Item Breakdown
+function renderItemBreakdown(){
+  const members = knownMembers.length > 0 ? knownMembers : (S.session ? [S.session.userName] : []);
+  const grand = getGrandTotal();
+  const sub = getSubtotal();
+  const split = calcSplit(modalSplitMode, members, S.cart, grand);
+
+  document.getElementById('ibt-body').innerHTML = S.cart.map(item=>{
+    const itemGrand = Math.round(item.price * item.qty * (grand / (sub||1)));
+    let payerHtml = '';
+
+    if(modalSplitMode === 'adder'){
+      const color = COLORS[knownMembers.indexOf(item.addedBy) % COLORS.length];
+      payerHtml = `<span class="ibt-payer" style="background:${color}20;color:${color}">${item.addedBy}</span>`;
+    } else if(modalSplitMode === 'equal'){
+      payerHtml = members.map((m,i)=>{
+        const share = Math.round(itemGrand / members.length);
+        const color = COLORS[i%COLORS.length];
+        return `<span class="ibt-payer" style="background:${color}20;color:${color}">${m}: ₹${share.toLocaleString('en-IN')}</span> `;
+      }).join('');
+    } else {
+      let totalPct = members.reduce((s,m)=>s+(customPcts[m]||0),0)||100;
+      payerHtml = members.map((m,i)=>{
+        const share = Math.round(itemGrand * (customPcts[m]||0) / totalPct);
+        const color = COLORS[i%COLORS.length];
+        return `<span class="ibt-payer" style="background:${color}20;color:${color}">${m}: ₹${share.toLocaleString('en-IN')}</span> `;
+      }).join('');
+    }
+
+    const adderColor = COLORS[knownMembers.indexOf(item.addedBy) % COLORS.length];
+    return `<tr>
+      <td>${item.emoji} <b style="font-size:12px">${item.name.split(' ').slice(0,3).join(' ')}</b> <span style="font-size:10px;color:var(--muted)">×${item.qty}</span></td>
+      <td><span class="ibt-payer" style="background:${adderColor}20;color:${adderColor}">${item.addedBy}</span></td>
+      <td style="font-weight:700">₹${(item.price*item.qty).toLocaleString('en-IN')}</td>
+      <td>${payerHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── CONFIRM ORDER ────────────────────────────────────────────────────────────
+function confirmOrder(){
+  bc('ORDER_PLACED', {});
+  const members = knownMembers.length > 0 ? knownMembers : (S.session ? [S.session.userName] : []);
+  const grand = getGrandTotal();
+  const split = calcSplit(modalSplitMode, members, S.cart, grand);
+  const settlements = calcSettlement(split, S.session?.userName || members[0]);
+  const orderNo = 'AMZ-' + Date.now().toString().slice(-8);
+
+  document.getElementById('success-inner').innerHTML = `
+    <div class="s-row"><span style="color:var(--muted)">Order ID</span><span style="font-family:monospace;font-weight:600">${orderNo}</span></div>
+    <div class="s-row"><span style="color:var(--muted)">Items</span><span>${S.cart.reduce((s,i)=>s+i.qty,0)} items</span></div>
+    <div class="s-row"><span style="color:var(--muted)">Split mode</span><span style="text-transform:capitalize">${modalSplitMode}</span></div>
+    <div class="s-row total"><span>Grand Total</span><span>₹${grand.toLocaleString('en-IN')}</span></div>
+    ${settlements.length>0 ? `
+      <div class="payment-requests">
+        <div class="pr-title">📲 Payment Requests Sent</div>
+        ${settlements.map(t=>`<div class="pr-row"><span><strong>${t.from}</strong> → ${t.to}</span><span style="font-weight:700;color:var(--red)">₹${t.amount.toLocaleString('en-IN')}</span></div>`).join('')}
+      </div>` : `<div style="color:var(--green);font-size:12px;margin-top:8px">✅ No transfers needed</div>`}`;
+
+  document.getElementById('order-modal').classList.remove('open');
+  document.getElementById('success-modal').style.display = 'flex';
+  S.cart = [];
+  renderCart(); renderProducts(); renderSplitPreview();
+  bc('CART_UPDATE', []);
+}
+function closeSuccess(){
+  document.getElementById('success-modal').style.display = 'none';
+}
+
+// ─── CHAT ─────────────────────────────────────────────────────────────────────
+function sendChat(){
+  const inp = document.getElementById('chat-input');
+  const text = inp.value.trim();
+  if(!text || !S.session) return;
+  inp.value = '';
+  addMsg(S.session.userName, text, 'mine');
+  bc('CHAT', {sender: S.session.userName, text});
+}
+function addMsg(sender, text, type){
+  const el = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'cm ' + type;
+  d.innerHTML = type === 'sys' ? text : `<div class="cm-sender">${sender}</div>${text}`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+function broadcastTyping(){
+  if(!S.session) return;
+  bc('TYPING', {});
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(()=>{}, 2000);
+}
+function showTyping(name){
+  const el = document.getElementById('typing');
+  el.textContent = `${name} is typing…`;
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(()=>el.textContent='', 2000);
+}
+
+// ─── PRODUCTS ─────────────────────────────────────────────────────────────────
+function renderCatTabs(){
+  document.getElementById('cat-tabs').innerHTML = CATS.map(c=>
+    `<button class="cat-tab${c===currentFilter?' active':''}" onclick="setFilter('${c}')">${c}</button>`
+  ).join('');
+}
+function setFilter(cat){ currentFilter=cat; renderCatTabs(); renderProducts(); }
+function filterProducts(q){ searchQuery=q.toLowerCase(); renderProducts(); }
+function renderProducts(){
+  let filtered = PRODUCTS;
+  if(currentFilter!=='All') filtered = filtered.filter(p=>p.cat===currentFilter);
+  if(searchQuery) filtered = filtered.filter(p=>p.name.toLowerCase().includes(searchQuery)||p.brand.toLowerCase().includes(searchQuery));
+  document.getElementById('results-count').textContent = `${filtered.length} results`;
+  document.getElementById('products-grid').innerHTML = filtered.map(p=>{
+    const ci = S.cart.find(i=>i.id===p.id);
+    const inCart = !!ci;
+    const disc = Math.round((1-p.price/p.oldPrice)*100);
+    return `<div class="product-card${inCart?' in-cart':''}">
+      ${inCart ? `<div class="in-cart-tag">In Cart ×${ci.qty}</div>` : ''}
+      <div class="prod-img">${p.emoji}</div>
+      <div class="prod-brand">${p.brand}</div>
+      <div class="prod-name">${p.name}</div>
+      <div class="prod-stars">${p.rating} <span style="color:var(--muted)">(${p.rc})</span></div>
+      <div>
+        <span class="prod-price">₹${p.price.toLocaleString('en-IN')}</span>
+        <span class="prod-old">₹${p.oldPrice.toLocaleString('en-IN')}</span>
+        <span class="prod-disc">${disc}% off</span>
+      </div>
+      ${inCart ? `<div class="prod-addedby">Added by ${ci.addedBy}</div>` : ''}
+      <button class="add-btn${inCart?' added':''}" onclick="addToCart(${p.id})">
+        ${inCart ? '✓ Added to Cart' : 'Add to Group Cart'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+// ─── ACTIVITY ─────────────────────────────────────────────────────────────────
+function addActivity(text){
+  S.activities.unshift(text);
+  if(S.activities.length > 8) S.activities.pop();
+  document.getElementById('activity-list').innerHTML = S.activities.map(a=>
+    `<div class="act-item"><div class="act-dot"></div>${a}</div>`
+  ).join('');
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2800);
+}
+function scrollToEl(id){ document.getElementById(id)?.scrollIntoView({behavior:'smooth'}); }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderCatTabs();
+renderProducts();
+renderCart();
+document.getElementById('user-name').placeholder = ['Priya','Rahul','Ananya','Arjun','Meera'][Math.floor(Math.random()*5)] + '...';
+</script>
+</body>
+</html>
